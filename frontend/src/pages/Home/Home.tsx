@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Header from "./components/Header";
 import ImageCard from "./components/ImageCard";
 import Confidence from "./components/Confidence";
 import AccessRes from "./components/AccessRes";
+import AdminLogin from "./components/AdminLogin";
 /*Importerar bilder som används på sidan*/
 import cameraImage from "../../assets/background3.jpg";
 import databaseImage from "../../assets/background2.jpg";
@@ -10,11 +11,12 @@ import "./Home.css";
 
 function Home() {
   const confidence = 80;
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if(e.code == "KeyA" && e.ctrlKey && e.altKey) {
+      if (e.code == "KeyA" && e.ctrlKey && e.altKey && !e.repeat) {
         e.preventDefault();
-        console.log("Admin");
+        setIsAdminOpen(true);
       }
     }
     window.addEventListener("keydown", handleKeyDown);
@@ -27,7 +29,8 @@ function Home() {
     <main className="app">
       <div className="content">
         <Header firstname="Saga" surname="Jonsson" />
-
+        {/*När onClose anropas skörs setIsAdminOpen(false) via AdminLogin*/}
+        {isAdminOpen && <AdminLogin onClose={() => setIsAdminOpen(false)} />}
         <section className="recognition">
           <ImageCard title="Camera Image" image={cameraImage} showCorners />
           <Confidence value={confidence} />
