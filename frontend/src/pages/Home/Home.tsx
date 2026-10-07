@@ -5,13 +5,14 @@ import Confidence from "./components/Confidence";
 import AccessRes from "./components/AccessRes";
 import AdminLogin from "./components/AdminLogin";
 /*Importerar bilder som används på sidan*/
-import cameraImage from "../../assets/background3.jpg";
+/*import cameraImage from "../../assets/background3.jpg";*/
 import databaseImage from "../../assets/background2.jpg";
 import "./Home.css";
 
 function Home() {
   const confidence = 80;
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.code == "KeyA" && e.ctrlKey && e.altKey && !e.repeat) {
@@ -32,7 +33,12 @@ function Home() {
         {/*När onClose anropas skörs setIsAdminOpen(false) via AdminLogin*/}
         {isAdminOpen && <AdminLogin onClose={() => setIsAdminOpen(false)} />}
         <section className="recognition">
-          <ImageCard title="Camera Image" image={cameraImage} showCorners />
+          <ImageCard 
+          title="Camera Image" 
+          image="http://localhost:8000/camera/stream" 
+          showCorners 
+          isActive={isCameraOpen}
+          onToggle={()=> setIsCameraOpen((previous)=> !previous)}/>
           <Confidence value={confidence} />
           <ImageCard title="Database Image" image={databaseImage} />
         </section>

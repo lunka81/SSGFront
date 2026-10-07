@@ -2,93 +2,168 @@ import "./AddPerson.css";
 import type { SubmitEvent } from "react";
 import { useState } from "react";
 import { Camera } from "lucide-react";
+import CameraModal from "./CameraModal";
+
 
 // Tar emot en funktion från Admin som lägger till personen i listan
 type AddPersonProps = {
-    onAdd: (name: string, access: string, department: string) => void;
+  onAdd: (
+    name: string,
+    access: string,
+    department: string,
+    image: string,
+  ) => Promise<void>;
 };
 
 function AddPerson({ onAdd }: AddPersonProps) {
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0];
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-        if (file) {
-            const imageUrl = URL.createObjectURL(file);
-            setImagePreview(imageUrl);
-        }
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setImagePreview(reader.result);
+      }
+    };
+
+    reader.readAsDataURL(file);
+  }
+  async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (saving) return;
+
+    // Spara referensen före await.
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    const name = String(formData.get("name") ?? "").trim();
+    const access = String(formData.get("access") ?? "");
+    const description = String(formData.get("description") ?? "");
+
+    if (!name || !imagePreview) {
+      setError("Ange namn och välj eller ta en bild.");
+      return;
     }
-    function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
-        e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-        const name = formData.get("name") as string;
-        const access = formData.get("access") as string;
-        const description = formData.get("description") as string;
 
-        // Namn är obligatoriskt
-        if (!name) {
-            return;
-        }
+    setSaving(true);
+    setError(null);
 
-        onAdd(name, access, description);
-        // Tömmer formuläret
-        e.currentTarget.reset();
+    try {
+      await onAdd(name, access, description, imagePreview);
+
+      // Töm först när backend har sparat personen.
+      form.reset();
+      setImagePreview(null);
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Kunde inte spara personen.",
+      );
+    } finally {
+      setSaving(false);
     }
+  }
 
-    function handleCancel() {
-        setImagePreview(null);
-    }
+function handleCancel() {
+    setImagePreview(null);
+    setError(null);
+    setCameraOpen(false);
+}
 
-    return (
-        <section className="add-person">
-            <h2>Add new person</h2>
+  return (
+    <section className="add-person">
+      <h2>Add new person</h2>
 
-            <form className="add-person-form" onSubmit={handleSubmit}>
-                <div className="add-person-fields">
-                    <label>
-                        <span>Name <span className="required">*</span></span>
-                        <input type="text" name="name" placeholder="Kalle Karlsson" />
-                    </label>
-                    <label>
-                        <span>Access permissions <span className="required">*</span></span>
-                        <select name="access">
-                            <option value="Standard">Standard</option>
-                            <option value="Admin">Admin</option>
-                            <option value="Limited">Limited</option>
-                        </select>
-                    </label>
-                    <label>
-                        Description (optional)
-                        <input type="text" name="description" placeholder="T.ex. avdelning, roll, företag" />
-                    </label>
-                </div>
+      <form className="add-person-form" onSubmit={handleSubmit}>
+        <div className="add-person-fields">
+          <label>
+            <span>
+              Name <span className="required">*</span>
+            </span>
+            <input type="text" name="name" placeholder="Kalle Karlsson" />
+          </label>
+          <label>
+            <span>
+              Access permissions <span className="required">*</span>
+            </span>
+            <select name="access">
+              <option value="Standard">Standard</option>
+              <option value="Admin">Admin</option>
+              <option value="Limited">Limited</option>
+            </select>
+          </label>
+          <label>
+            Description (optional)
+            <input
+              type="text"
+              name="description"
+              placeholder="T.ex. avdelning, roll, företag"
+            />
+          </label>
+        </div>
 
-                <div className="add-person-picture">
-                    <p>Profile picture <span className="required">*</span></p>
+        <div className="add-person-picture">
+          <p>
+            Profile picture <span className="required">*</span>
+          </p>
 
-                    <div className="picture-row">
-                        <div className="picture-preview">
-                            {imagePreview && (
-                                <img src={imagePreview} alt="Profile preview" />
-                            )}
-                        </div>
+          <div className="picture-row">
+            <div className="picture-preview">
+              {imagePreview && <img src={imagePreview} alt="Profile preview" />}
+            </div>
 
-                        <label className="picture-upload">
-                            <Camera size={28} />
-                            <span className="upload-title">Upload picture</span>
-                            <span className="upload-hint">JPG, PNG (max 5 MB)</span>
-                            <input type="file" name="picture" accept="image/png, image/jpeg" onChange={handleImageChange} hidden />
-                        </label>
-                    </div>
-                </div>
+            <label className="picture-upload">
+              <Camera size={28} />
+              <span className="upload-title">Upload picture</span>
+              <span className="upload-hint">JPG, PNG (max 5 MB)</span>
+              <input
+                type="file"
+                name="picture"
+                accept="image/png, image/jpeg"
+                onChange={handleImageChange}
+                hidden
+              />
+            </label>
+          </div>
+        </div>
 
-                <div className="add-person-buttons">
-                    <button type="reset" className="cancel-button" onClick={handleCancel}>Cancel</button>
-                    <button type="submit" className="login-button">Add person</button>
-                </div>
-            </form>
-        </section>
-    );
+        <div className="add-person-buttons">
+          <button type="reset" className="cancel-button" onClick={handleCancel}>
+            Cancel
+          </button>
+          <button type="submit" className="login-button" disabled={saving}>
+            {" "}
+            {saving ? "Saving..." : "Add person"}
+          </button>
+          <button
+            type="button"
+            className="login-button"
+            onClick={() => setCameraOpen(true)}
+            disabled={saving}
+          >
+            Camera
+          </button>
+        </div>
+      </form>
+      {error && <p role="alert">{error}</p>}
+
+      {cameraOpen && (
+        <CameraModal
+          onCapture={(image) => {
+            setImagePreview(image);
+            setError(null);
+            setCameraOpen(false);
+          }}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
+    </section>
+  );
 }
 
 export default AddPerson;

@@ -7,6 +7,7 @@ import AddPerson from "./components/AddPerson";
 import Sidebar from "./components/Sidebar";
 import StoredPersons, { type Person } from "./components/StoredPersons";
 import { User, Check, X, ChartNoAxesColumn } from "lucide-react";
+import { createEmployee } from "./components/EmployeeCreate";
 import "./Admin.css";
 
 // Tillfälliga testpersoner tills listan hämtas från databasen
@@ -26,23 +27,50 @@ function Admin() {
   }
 
   // Anropas av AddPerson när man klickar "Add person"
-  function addPerson(name: string, access: string, department: string) {
-    const newPerson: Person = {
-      id: Date.now(),
-      name: name,
-      access: access,
-      department: department,
-      active: true,
-    };
-    // Skapar en ny lista med alla gamla personer och den nya sist
-    setPersons([...persons, newPerson]);
-  }
+function addPerson(
+  name: string,
+  access: string,
+  description: string
+): void {
+  const newPerson: Person = {
+    id: Date.now(),
+    name,
+    access,
+    department: description,
+    active: true,
+  };
+
+  setPersons((previous) => [...previous, newPerson]);
+}
 
   function deletePerson(id: number) {
     // Behåller alla personer utom den med detta id
     setPersons(persons.filter((person) => person.id !== id));
   }
 
+async function handleAddPerson(
+  name: string,
+  access: string,
+  description: string,
+  image: string
+): Promise<void> {
+  if (
+    access !== "Standard" &&
+    access !== "Admin" &&
+    access !== "Limited"
+  ) {
+    throw new Error("Ogiltig roll.");
+  }
+
+  const employee = await createEmployee({
+  name,
+  role: access,
+  description,
+  img: image,
+});
+
+  addPerson(employee.name, access, description);
+}
   return (
     <div className="admin-layout">
       <Sidebar />
@@ -83,7 +111,7 @@ function Admin() {
           </div>
 
           <div className="mid-content">
-            <AddPerson onAdd={addPerson} />
+            <AddPerson onAdd={handleAddPerson} />
             <StoredPersons persons={persons} onDelete={deletePerson} />
           </div>
         </div>
